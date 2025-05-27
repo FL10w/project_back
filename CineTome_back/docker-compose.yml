@@ -1,0 +1,40 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy  # Ждём, пока db не станет "healthy"
+    networks:
+      - cinetome_backend_default
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-cinetome}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cinetome}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinetome_backend_default
+
+volumes:
+  postgres_data:
+
+networks:
+  cinetome_backend_default:
+    driver: bridge
